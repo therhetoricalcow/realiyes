@@ -14,6 +14,7 @@ class Application(Frame):
         super().__init__(master)
         self.master = master
         self.pack()
+        self.currImageObj = None
         self.directory = None
         self.fileiter = 0
         self.sortedfilelist = None
@@ -64,27 +65,25 @@ class Application(Frame):
 
 
     def create_sliders(self):
-        v0 = Tk.IntVar(0)
-        v1 = Tk.IntVar(0)
-        v2 = Tk.IntVar(0)
-        v3 = Tk.IntVar(0)
-        v4 = Tk.IntVar(0)
-        v5 = Tk.IntVar(0)
-        v6 = Tk.IntVar(0)
-        v7 = Tk.IntVar(0)
-        v8 = Tk.IntVar(0)
-        v9 = Tk.IntVar(0)
+        self.slider0 = Scale(root, text="lowThresholdCanny", from_ =1, to=50, orient = VERTICAL, command=self.recalibrate)
+        self.slider1 = Scale(root,text="highThresholdCanny",from_ =1,to=50,orient = VERTICAL,command=self.recalibrate)
+        self.slider2 = Scale(root, text="size", from_ =100, to=300, orient = VERTICAL, command=self.recalibrate)
+        self.slider3 = Scale(root, text="darkestPixelL1", from_ =0, to=50, orient = VERTICAL, command=self.recalibrate)
+        self.slider4 = Scale(root, text="darkestPixelL2", from_ =0,to=50,orient = VERTICAL,command=self.recalibrate)
+        self.slider5 = Scale(root, text="pupilSearchArea", from_ =0,to=50,orient = VERTICAL,command=self.recalibrate)
+        self.slider6 = Scale(root, text="pupilSearchXMin", from_ =0,to=100,orient = VERTICAL,command=self.recalibrate)
+        self.slider7 = Scale(root, text="pupilSearchYMin", from_ =0,to=100,orient = VERTICAL,command=self.recalibrate)
+        self.slider8 = Scale(root, text="dilation", from_ =0,to=20,orient = VERTICAL,command=self.recalibrate)
+        self.slider9 = Scale(root, text="thickness", from_ =0,to=20,orient = VERTICAL,command=self.recalibrate)
 
-        slider0 = Scale(root,text="lowThresholdCanny",variable=v0)
-        slider1 = Scale(root,text="highThresholdCanny",variable=v1)
-        slider2 = Scale(root,text="size",variable=v2)
-        slider3 = Scale(root,text="darkestPixelL1",variable=v3)
-        slider4 = Scale(root, text="darkestPixelL2", variable=v4)
-        slider5 = Scale(root, text="pupilSearchArea", variable=v5)
-        slider6 = Scale(root, text="pupilSearchXMin", variable=v6)
-        slider7 = Scale(root, text="pupilSearchYMin", variable=v7)
-        slider8 = Scale(root, text="dilation", variable=v8)
-        slider9 = Scale(root, text="thickness", variable=v9)
+    def recalibrate(self):
+        try:
+            self.currImageObj.setLtc(self.slider0.get())
+            self.currImageObj.setHtc(self.slider1.get())
+            self.currImageObj.setSize(self.slider2.get())
+            self.currImageObj.setDpl1(self.slider3.get())
+            self.currImageObj.setDpl2(self.slider4.get())
+
 
     def create_panels(self,path2image):
         global panelA,panelB

@@ -108,11 +108,11 @@ class PupilFit:
         cols = img.shape[1]
 
         # for searching img
-        sArea = 10
+        sArea = self.pupilSearchArea
         outerSearchDivisor = 2
 
         # darkness calculation
-        width = 30
+        width =20
         searchDivisor = 3
 
         areaMin = 255 * 9 * searchDivisor ** 2
@@ -182,8 +182,8 @@ class PupilFit:
         mcX = inputPoint[0]
         mcY = inputPoint[1]
 
-        newX = mcX - self.size/2
-        newY = mcY - self.size/2
+        newX = mcX - size/2
+        newY = mcY - size/2
 
         if(newX<0):
             newX = 0

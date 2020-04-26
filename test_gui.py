@@ -41,6 +41,10 @@ class Application(Frame):
         btn4 = Button(root, text="Open Directory", command=self.open_folder)
         btn4.pack(side="bottom", fill="both", expand="yes", padx="10", pady="10")
 
+        self.v = StringVar()
+        label = Label(root, textvariable=self.v)
+        label.pack(side="bottom", fill="both", expand="no", padx="10", pady="10")
+        self.v.set("0/0")
     def next_image(self):
         ##If Next Image Button is Pressed, go to the next image in the sorted directory
         try:
@@ -152,6 +156,7 @@ class Application(Frame):
 
             self.image = cv2.imread(path2image)
             image_name=str(self.sortedfilelist[self.fileiter])
+            self.v.set(str(self.fileiter+1) + '/' + str(len(self.sortedfilelist)))
             self.currImageObj = PupilFit(image_name)
             self.setSliders()
             self.shifted_ellipse = self.currImageObj.pupilAreafitRR(self.image)

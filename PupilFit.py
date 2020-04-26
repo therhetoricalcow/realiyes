@@ -9,7 +9,7 @@ from tkinter import *
 
 class PupilFit:
 
-    def __init__(self,name,ltc = 10,htc = 12,size = 175,dPL1 = 23,dPL2 = 23,pSA = 20,pSX = 50,pSY = 50,d = 3,t = 6,erode = False):
+    def __init__(self,name,ltc = 10,htc = 12,size = 280,dPL1 = 23,dPL2 = 23,pSA = 20,pSX = 50,pSY = 50,d = 4,t = 3,erode = False):
         self.lowThresholdCanny = ltc # default 10: for detecting dark (low contrast) parts of pupil
         self.highThresholdCanny = htc # default 30: for detecting lighter (high contrast) parts of pupil
         self.size = size # default 280: max L/H of pupil
@@ -18,7 +18,7 @@ class PupilFit:
         self.pupilSearchArea = pSA # default 20: for setting min size of pupil in pixels / 2
         self.pupilSearchXMin = pSX # default 50: distance from left side of image to start pupil search
         self.pupilSearchYMin = pSY # default 50: distance from right side of image to start pupil search
-        self.dilation = d ##how much to dilate threshedging by
+        self.spacing = d ##spacing
         self.thickness = t ##thickness of drawn lines
         self.erodeOn = erode # perform erode operation: turn off for one-offs, where eroding the image may actually hurt accuracy
         self.name = name
@@ -27,12 +27,12 @@ class PupilFit:
 
     def getDrawnImage(self,shifted_ellipse,image):
         imagetoDraw = image.copy()
-        cv2.ellipse(imagetoDraw,shifted_ellipse,(0,255,0),2)
+        cv2.ellipse(imagetoDraw,tuple(shifted_ellipse),(0,255,0),1)
         return imagetoDraw
     def getImageSegment(self,shifted_ellipse,image):
         black = np.zeros((image.shape[0], image.shape[1]), dtype='uint8')
-        pts = cv2.ellipse2Poly(shifted_ellipse)
-        cv2.fillPoly(black,pts,(255,255,255))
+        pts = cv2.ellipse2Poly((int(shifted_ellipse[0][0]), int(shifted_ellipse[0][1])), (int(shifted_ellipse[1][0]/2), int(shifted_ellipse[1][1]/2)), int(shifted_ellipse[2]), 0, 360, 1)
+        cv2.fillPoly(black,np.int32([pts]),(255,255,255))
         return black
 
 ###Setters
@@ -52,8 +52,8 @@ class PupilFit:
         self.pupilSearchXMin = val
     def setPsy(self,val):
         self.pupilSearchYMin = val
-    def setDilation(self,val):
-        self.dilation = val
+    def setSpacing(self,val):
+        self.spacing = val
     def setThickness(self,val):
         self.thickness = val
     def setErode(self,val):
@@ -77,8 +77,8 @@ class PupilFit:
         return self.pupilSearchXMin
     def getPsy(self):
         return self.pupilSearchYMin
-    def getDilation(self):
-        return self.dilation
+    def getSpacing(self):
+        return self.spacing
     def getThickness(self):
         return self.thickness
     def getErode(self):
@@ -280,8 +280,8 @@ class PupilFit:
         thresh4 = cv2.Canny(Rroi, self.getHtc(), self.getHtc() * ratio, kernel2)
 
         ##dilating to increase thickness
-        dilatethresh3 = cv2.dilate(thresh3, (self.getDilation(), self.getDilation()), 3)
-        dilatethresh4 = cv2.dilate(thresh4, (self.getDilation(), self.getDilation()), 3)
+        dilatethresh3 = cv2.dilate(thresh3, (3, 3), 3)
+        dilatethresh4 = cv2.dilate(thresh4, (3, 3), 3)
         if (debug):
             cv2.imshow('dilatethresh3',dilatethresh3)
             cv2.imshow('dilatethresh4',dilatethresh4)
@@ -305,7 +305,7 @@ class PupilFit:
         _,contours, hierarchy = cv2.findContours(ctOR, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         try:
             biggestC = self.getBiggest(contours)
-            allPts = self.refinePoints(contours, biggestC, Rroi, 4, 2, True)
+            allPts = self.refinePoints(contours, biggestC, Rroi, self.getSpacing(), 2, True)
             allPts = np.array(allPts, dtype=np.float32)
             ellipse = cv2.fitEllipse(allPts)
             shiftedellipse = ((ellipse[0] + darkestPixelConfirm), ellipse[1], ellipse[2])
@@ -313,4 +313,5 @@ class PupilFit:
 
 
         except:
-            print('No ellipse in boundary')
+            shiftedellipse = ([0,0],(0,0),0)
+            return shiftedellipse

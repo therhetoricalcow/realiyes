@@ -9,7 +9,7 @@ from tkinter import *
 
 class PupilFit:
 
-    def __init__(self,ltc = 10,htc = 12,size = 175,dPL1 = 23,dPL2 = 23,pSA = 20,pSX = 50,pSY = 50,d = 3,t = 6,erode = False):
+    def __init__(self,name,ltc = 10,htc = 12,size = 175,dPL1 = 23,dPL2 = 23,pSA = 20,pSX = 50,pSY = 50,d = 3,t = 6,erode = False):
         self.lowThresholdCanny = ltc # default 10: for detecting dark (low contrast) parts of pupil
         self.highThresholdCanny = htc # default 30: for detecting lighter (high contrast) parts of pupil
         self.size = size # default 280: max L/H of pupil
@@ -21,11 +21,19 @@ class PupilFit:
         self.dilation = d ##how much to dilate threshedging by
         self.thickness = t ##thickness of drawn lines
         self.erodeOn = erode # perform erode operation: turn off for one-offs, where eroding the image may actually hurt accuracy
+        self.name = name
+    def __del__(self):
+        print(self.name + " has been deleted")
 
     def getDrawnImage(self,shifted_ellipse,image):
         imagetoDraw = image.copy()
         cv2.ellipse(imagetoDraw,shifted_ellipse,(0,255,0),2)
         return imagetoDraw
+    def getImageSegment(self,shifted_ellipse,image):
+        black = np.zeros((image.shape[0], image.shape[1]), dtype='uint8')
+        pts = cv2.ellipse2Poly(shifted_ellipse)
+        cv2.fillPoly(black,pts,(255,255,255))
+        return black
 
 ###Setters
     def setLtc(self,val):
@@ -51,6 +59,8 @@ class PupilFit:
     def setErode(self,val):
         self.erodeOn = val
 ##Getters
+    def getName(self):
+        return self.name
     def getLtc(self):
         return self.lowThresholdCanny
     def getHtc(self):

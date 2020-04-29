@@ -4,9 +4,10 @@ import random as r
 from matplotlib import pyplot as plt
 import time
 import os
+import cv2
 import ctypes
 
-user32 = ctypes.windll.user32
+
 height = 1081
 width = 1921
 ##BGR
@@ -16,6 +17,7 @@ black = (0, 0, 0)
 grey = (128, 128, 128)
 green = (0, 255, 0)
 red = (0, 0, 255)
+img_dir = '/home/avaneesh/Desktop/Images'
 
 """
 Using BGR Format ccp takes in an coordinates, the image,
@@ -76,14 +78,14 @@ def getSamples(Y, X):
 
 def imagedirectory(data):
     i = 0
-    os.mkdir(r'C:\Users\Avaneesh Murugesan\Desktop\Images')
+    os.mkdir(img_dir)
     for i in range(len(data)):
         x = data[i, 0]
         y = data[i, 1]
-        img_directory = r'C:\Users\Avaneesh Murugesan\Desktop\Images\ ' + str(x) + '_' + str(y)
+        img_directory = img_dir + '/' +str(x) + '_' + str(y)
         os.mkdir(img_directory)
-        os.mkdir(img_directory + '\\frame0')
-        os.mkdir(img_directory + '\\frame1')
+        os.mkdir(img_directory + '/frame0')
+        os.mkdir(img_directory + '/frame1')
 
 
 nY, nX = getPoints(1080, 1920, 8)
@@ -112,15 +114,15 @@ while (True):
             break
         s1 = time.time()
         j = 0
-        while (time.time() - s1 < 8):
+        while (time.time() - s1 < 5):
             print('JEJEJE')
             ret0, frame0 = cap0.read()
             ret1, frame1 = cap1.read()
-            img_dir = r'C:\Users\Avaneesh Murugesan\Desktop\Images\ ' + str(data[i, 0]) + '_' + str(data[i, 1])
-            os.chdir(img_dir + '\\frame0')
-            cv2.imwrite(str(j) + 'frame0.png', cv2.rotate(frame0, cv2.ROTATE_180))
-            os.chdir(img_dir + '\\frame1')
-            cv2.imwrite(str(j) + '_frame1.png', frame1)
+            img_direct = img_dir + str(data[i, 0]) + '_' + str(data[i, 1])
+            os.chdir(img_direct + '/frame0')
+            cv2.imwrite(str(j) + '.png', cv2.rotate(frame0, cv2.ROTATE_180))
+            os.chdir(img_direct + '/frame1')
+            cv2.imwrite(str(j) + '.png', frame1)
             j += 1
 
         greenp = ccp(data[i][0], data[i][1], white, green, 5)

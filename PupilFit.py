@@ -9,7 +9,7 @@ from tkinter import *
 
 class PupilFit:
 
-    def __init__(self,name,ltc = 10,htc = 12,size = 280,dPL1 = 23,dPL2 = 23,pSA = 20,pSX = 50,pSY = 50,d = 4,t = 3,erode = False):
+    def __init__(self,name,ltc = 10,htc = 12,size = 280,dPL1 = 10,dPL2 = 20,pSA = 20,pSX = 50,pSY = 50,d = 4,t = 3,erode = False):
         self.lowThresholdCanny = ltc # default 10: for detecting dark (low contrast) parts of pupil
         self.highThresholdCanny = htc # default 30: for detecting lighter (high contrast) parts of pupil
         self.size = size # default 280: max L/H of pupil
@@ -242,7 +242,7 @@ class PupilFit:
         if (debug):
             cv2.imshow('threshlow',threshLow)
         ##find contours
-        _,contoursLow, hierarchy = cv2.findContours(threshLow, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        contoursLow, hierarchy = cv2.findContours(threshLow, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
         # ##get biggest contours (iris)
         biggest = self.getBiggest(contoursLow)
@@ -262,7 +262,7 @@ class PupilFit:
         if (debug):
             cv2.imshow('threshHigh',threshHigh)
         ##contours for high threshold
-        _,contoursHigh, hierarchy2 = cv2.findContours(threshHigh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        contoursHigh, hierarchy2 = cv2.findContours(threshHigh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
         ##
         biggestHigh = self.getBiggest(contoursHigh)
@@ -302,7 +302,7 @@ class PupilFit:
             cv2.imshow('cthand',cthand)
             cv2.imshow('cTOR',ctOR)
 
-        _,contours, hierarchy = cv2.findContours(ctOR, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        contours, hierarchy = cv2.findContours(ctOR, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         try:
             biggestC = self.getBiggest(contours)
             allPts = self.refinePoints(contours, biggestC, Rroi, self.getSpacing(), 2, True)

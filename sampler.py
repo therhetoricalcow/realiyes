@@ -6,10 +6,15 @@ import time
 import os
 import cv2
 import ctypes
+import tkinter as tk
 
+root = tk.Tk()
 
-height = 1081
-width = 1921
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+
+height = screen_height +1
+width = screen_width +1
 ##BGR
 white = np.ones((height, width, 3), dtype="uint8") * 255
 
@@ -61,8 +66,6 @@ def getPoints(height, width, samp):
 Given 2 numpy arrays, getSamples iterates and returns an array with all 
 a all possible datapoints 
 """
-
-
 def getSamples(Y, X):
     i = 0
     j = 0
@@ -78,26 +81,30 @@ def getSamples(Y, X):
 
 def imagedirectory(data):
     i = 0
-    os.mkdir(img_dir)
-    for i in range(len(data)):
-        x = data[i, 0]
-        y = data[i, 1]
-        img_directory = img_dir + '/' +str(x) + '_' + str(y)
-        os.mkdir(img_directory)
-        os.mkdir(img_directory + '/frame0')
-        os.mkdir(img_directory + '/frame1')
+    try:
+        os.mkdir(img_dir)
+        for i in range(len(data)):
+            x = data[i, 0]
+            y = data[i, 1]
+            img_directory = img_dir + '/' +str(x) + '_' + str(y)
+            os.mkdir(img_directory)
+            os.mkdir(img_directory + '/right')
+            os.mkdir(img_directory + '/left')
+    except:
+        print("Folder is Already There!")
 
 
-nY, nX = getPoints(1080, 1920, 8)
+nY, nX = getPoints(1080, 1920, 10)
 data = getSamples(nY, nX)
 
-cap0 = cv2.VideoCapture(2)
-cap1 = cv2.VideoCapture(1)
+cap0 = cv2.VideoCapture(4)
+cap1 = cv2.VideoCapture(2)
 imagedirectory(data)
-
-while (True):
-    #    ret0,frame0 = cap0.read()
-    #    ret1,frame1 = cap1.read()
+ret0,frame0 = cap0.read()
+ret1,frame1 = cap1.read()
+while (ret0==True and ret1 == True):
+    ret0,frame0 = cap0.read()
+    ret1,frame1 = cap1.read()
     #
     cv2.namedWindow('screen', cv2.WINDOW_NORMAL)
     cv2.setWindowProperty('screen', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -105,7 +112,7 @@ while (True):
     for i in range(len(data)):
         blackp = ccp(data[i][0], data[i][1], white, black, 5)
         cv2.imshow('screen', blackp)
-        if cv2.waitKey(4000) & 0xFF == ord('q'):
+        if cv2.waitKey(1000) & 0xFF == ord('q'):
             break
         redp = ccp(data[i][0], data[i][1], white, red, 5)
 
@@ -114,15 +121,16 @@ while (True):
             break
         s1 = time.time()
         j = 0
-        while (time.time() - s1 < 5):
-            print('JEJEJE')
+        while (time.time() - s1 < 2):
+
             ret0, frame0 = cap0.read()
             ret1, frame1 = cap1.read()
-            img_direct = img_dir + str(data[i, 0]) + '_' + str(data[i, 1])
-            os.chdir(img_direct + '/frame0')
-            cv2.imwrite(str(j) + '.png', cv2.rotate(frame0, cv2.ROTATE_180))
-            os.chdir(img_direct + '/frame1')
-            cv2.imwrite(str(j) + '.png', frame1)
+            img_direct = img_dir + '/'+str(data[i, 0]) + '_' + str(data[i, 1])
+            print(img_direct)
+            os.chdir(img_direct + '/right')
+            cv2.imwrite(str(j) + '.png', frame0)
+            os.chdir(img_direct + '/left')
+            cv2.imwrite(str(j) + '.png', cv2.rotate(frame1, cv2.ROTATE_180))
             j += 1
 
         greenp = ccp(data[i][0], data[i][1], white, green, 5)

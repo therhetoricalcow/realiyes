@@ -24,6 +24,7 @@ class Application(Frame):
         self.shifted_ellipse = None
         self.create_button()
         self.create_sliders()
+        self.slidersSet = False
 
     def create_button(self):
         btn0 = Button(root, text="Next Image", command=self.next_image)
@@ -50,7 +51,7 @@ class Application(Frame):
         try:
             self.fileiter += 1
             path2currimage = str(self.directory) + '/' + str(self.sortedfilelist[self.fileiter])
-            self.load_InitialImage(path2currimage)
+            self.load_InitialImage(path2currimage,self.contrast_slider.get(),self.brightness_slider.get())
         except:
             print("There is No Next Image")
 
@@ -59,7 +60,7 @@ class Application(Frame):
         try:
             self.fileiter -= 1
             path2currimage = str(self.directory) + '/' + str(self.sortedfilelist[self.fileiter])
-            self.load_InitialImage(path2currimage)
+            self.load_InitialImage(path2currimage,self.contrast_slider.get(),self.brightness_slider.get())
         except:
             print("There is No Prev Image")
 
@@ -78,7 +79,7 @@ class Application(Frame):
                 self.currImageObj.setErode(False)
 
             path2image = str(self.directory) + '/' + str(self.sortedfilelist[self.fileiter])
-            self.create_panels(path2image)
+            self.create_panels(path2image,self.contrast_slider.get(),self.brightness_slider.get())
         except:
             print("Make Sure You Load a Pupil Object First!")
 
@@ -91,42 +92,52 @@ class Application(Frame):
         self.sortedfilelist = sorted(filelist, key=lambda f: int(re.sub('\D', '', f)))
         path2currimage = str(self.directory) + '/' + str(self.sortedfilelist[0])
         self.labeled_folder = str(self.directory) + '/Labeled_Segments'  ##Labeled_Segments
-        os.mkdir(self.labeled_folder)  ##Make Labeled Directory in Folder
-        self.load_InitialImage(path2currimage)
+
+        try:
+            os.mkdir(self.labeled_folder)  ##Make Labeled Directory in Folder
+        except:
+            print("Labeled Directory Exists")
+        self.load_InitialImage(path2currimage,self.contrast_slider.get(),self.brightness_slider.get())
 
     def create_sliders(self):
         # Sliders for adjusting CV Params
-        self.ltcSlider = Scale(root, from_=1, to=30, orient=VERTICAL, command=self.recalibrate,
+        self.ltcSlider = Scale(root, from_=1, to=60, orient=VERTICAL, command=self.recalibrate,
                                label="ltc")  # , text="lowThresholdCanny"
         self.ltcSlider.pack(side=LEFT)
 
-        self.htcSlider = Scale(root, from_=1, to=30, orient=VERTICAL, command=self.recalibrate,
+        self.htcSlider = Scale(root, from_=1, to=60, orient=VERTICAL, command=self.recalibrate,
                                label="htc")  # text="highThresholdCanny",
         self.htcSlider.pack(side=LEFT)
 
-        self.dpl1Slider = Scale(root, from_=5, to=50, orient=VERTICAL, command=self.recalibrate,
+        self.dpl1Slider = Scale(root, from_=1, to=60, orient=VERTICAL, command=self.recalibrate,
                                 label="dpl1")  # , text="darkestPixelL1"
         self.dpl1Slider.pack(side=LEFT)
 
-        self.dpl2Slider = Scale(root, from_=5, to=50, orient=VERTICAL, command=self.recalibrate,
+        self.dpl2Slider = Scale(root, from_=1, to=60, orient=VERTICAL, command=self.recalibrate,
                                 label="dpl2")  # , text="darkestPixelL2"
         self.dpl2Slider.pack(side=LEFT)
 
-        self.thicknessSlider = Scale(root, from_=1, to=20, orient=VERTICAL, command=self.recalibrate,
+        self.thicknessSlider = Scale(root, from_=1, to=40, orient=VERTICAL, command=self.recalibrate,
                                      label="t")  # , text="thickness"
         self.thicknessSlider.pack(side=LEFT)
 
-        self.spacingSlider = Scale(root, from_=2, to=20, orient=VERTICAL, command=self.recalibrate,
+        self.spacingSlider = Scale(root, from_=2, to=40, orient=VERTICAL, command=self.recalibrate,
                                      label="spacing")  # , text="Spacing"
         self.spacingSlider.pack(side=LEFT)
 
-        self.psxSlider = Scale(root, from_=0, to=80, orient=VERTICAL, command=self.recalibrate,
+        self.psxSlider = Scale(root, from_=0, to=300, orient=VERTICAL, command=self.recalibrate,
                                    label="psx")  # , text="Spacing"
         self.psxSlider.pack(side=LEFT)
 
-        self.psySlider = Scale(root, from_=0, to=80, orient=VERTICAL, command=self.recalibrate,
+        self.psySlider = Scale(root, from_=0, to=300, orient=VERTICAL, command=self.recalibrate,
                                label="psy")  # , text="Spacing"
         self.psySlider.pack(side=LEFT)
+        self.contrast_slider = Scale(root, from_=0.1,to= 5,resolution = 0.1,orient=VERTICAL,command = self.recalibrate,label = 'cont')
+        self.contrast_slider.pack(side = LEFT)
+        self.contrast_slider.set(1)
+        self.brightness_slider = Scale(root, from_=0,to= 100,orient=VERTICAL,command = self.recalibrate,label = 'bri')
+        self.brightness_slider.pack(side = LEFT)
+        self.brightness_slider.set(0)
 
     def recalibrate(self, *args):
 
@@ -137,11 +148,12 @@ class Application(Frame):
         self.currImageObj.setThickness(self.thicknessSlider.get())
         self.currImageObj.setSpacing(self.spacingSlider.get())
         self.currImageObj.setPsx(self.psxSlider.get())
-        self.currImageObj.setPsx(self.psySlider.get())
+        self.currImageObj.setPsy(self.psySlider.get())
         path2image = str(self.directory) + '/' + str(self.sortedfilelist[self.fileiter])
-        self.create_panels(path2image)
+        self.create_panels(path2image,self.contrast_slider.get(),self.brightness_slider.get())
 
     def setSliders(self):
+        self.slidersSet = True
         self.ltcSlider.set(self.currImageObj.getLtc())
         self.htcSlider.set(self.currImageObj.getHtc())
         self.dpl1Slider.set(self.currImageObj.getDpl1())
@@ -151,14 +163,16 @@ class Application(Frame):
         self.thicknessSlider.set(self.currImageObj.getThickness())
         self.spacingSlider.set(self.currImageObj.getSpacing())
 
-    def load_InitialImage(self, path2image):
+    def load_InitialImage(self, path2image,alpha,beta):
         if len(self.directory) > 0:
 
             self.image = cv2.imread(path2image)
+            self.image = cv2.convertScaleAbs(self.image, alpha=alpha, beta=beta)
             image_name=str(self.sortedfilelist[self.fileiter])
             self.v.set(str(self.fileiter+1) + '/' + str(len(self.sortedfilelist)))
             self.currImageObj = PupilFit(image_name)
-            self.setSliders()
+            if(self.slidersSet == False):
+                self.setSliders()
             self.shifted_ellipse = self.currImageObj.pupilAreafitRR(self.image)
             drawn = self.currImageObj.getDrawnImage(self.shifted_ellipse, self.image)
 
@@ -183,11 +197,12 @@ class Application(Frame):
                 self.panelA.image = image
                 self.panelB.image = drawn
 
-    def create_panels(self, path2image):
+    def create_panels(self, path2image,alpha,beta):
         if len(self.directory) > 0:
             self.image = cv2.imread(path2image)
-            shifted_ellipse = self.currImageObj.pupilAreafitRR(self.image)
-            drawn = self.currImageObj.getDrawnImage(shifted_ellipse, self.image)
+            self.image = cv2.convertScaleAbs(self.image, alpha=alpha, beta=beta)
+            self.shifted_ellipse = self.currImageObj.pupilAreafitRR(self.image)
+            drawn = self.currImageObj.getDrawnImage(self.shifted_ellipse, self.image)
 
             image = Image.fromarray(self.image)
             drawn = Image.fromarray(drawn)

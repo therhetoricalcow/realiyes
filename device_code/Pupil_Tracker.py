@@ -27,11 +27,14 @@ class Pupil_Tracker:
 		return self.frame1,self.frame2
 
 
-	def preprocess(self,frame):
-		frame = cv2.resize(frame,(224,224))
-		frame = frame.astype('float32')/255.0
-		frame = np.expand_dims(frame,axis=0)
-		return frame
+	def preprocess(self):
+		frame1 = cv2.resize(self.frame1,(224,224))
+		frame2 = cv2.resize(self.frame2,(224,224))
+		frame1 = frame1.astype('float32')/255.0
+		frame2 = frame2.astype('float32')/255.0
+		frame1 = np.expand_dims(frame1,axis=0)
+		frame2 = np.expand_dims(frame2,axis=0)
+		return frame1,frame2
 
 	def blobFinder(self,frame):
 		frame = frame.astype('int8')
@@ -57,10 +60,16 @@ class Pupil_Tracker:
 		threshed = cv2.threshold(blur,10,255,cv2.THRESH_BINARY)[1]
 		output = cv2.bitwise_and(threshed,mask,mask = None)
 		contours,hierarchy = cv2.findContours(output,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
+		x = None
+		y = None
+		MA = None
+		ma = None
+		angle = None
 		if len(contours) != 0:
 			c = max(contours,key = cv2.contourArea)
 			(x,y),(MA,ma),angle = cv2.fitEllipse(c)
-		return (x,y),(MA,ma),angle
+			
+		return np.array([[x],[y],[MA],[ma],[angle]])
 
 	def stop(self):
 		self.stopped = True

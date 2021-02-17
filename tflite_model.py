@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 import time
 import tflite_runtime.interpreter as tflite
 import platform

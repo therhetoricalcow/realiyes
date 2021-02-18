@@ -5,7 +5,7 @@ from tflite_model import tflite_model
 
 
 sensor = sensorData()
-p = Pupil_Tracker(-1,2)
+p = Pupil_Tracker(src1 =-1,src2 =2)
 model = tflite_model(model_file='../../Downloads/model_edgetpu_25.tflite')
 p.start()
 
@@ -25,18 +25,18 @@ def on_message(client,userdata,message):
 	global startRecording
 	global stopRecording
 	global endCalibration
-	if(str(info) == 'Start Calibration Sensors'):
+	if(str(info) == '1'):
 		sensorCalibration = True
-	if(str(info) == 'Start Calibration Camera'):
+	if(str(info) == '2'):
 		cameraCalibration = True
-	if(str(info) == 'End Calibration'):
+	if(str(info) == '3'):
 		endCalibration = True
-	if(str(info) == 'Start Recording'):
+	if(str(info) == '4'):
 		startRecording = True
-	if(str(info) == 'Stop Recording'):
+	if(str(info) == '5'):
 		stopRecording = True
 
-broker_address = "localhost"
+broker_address = 'localhost'
 client = mqtt.Client()
 client.connect(broker_address)
 client.on_connect = on_connect
@@ -92,4 +92,5 @@ while(stopRecording == False):
 		data = np.hstack((data,arry))
 
 t_data.join()
-np.savetxt("data.csv",data,delimiter = ",")
+np.savetxt("data.csv",np.transpose(data),delimiter = ",")
+

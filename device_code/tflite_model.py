@@ -25,4 +25,5 @@ class tflite_model:
         output_data = self.interpreter.get_tensor(self.output_details[0]['index'])
         output_data = np.squeeze(output_data)
         output_data = np.reshape(output_data,(224,224,1))*255.0
+        output_data = output_data.astype('uint8')
         return output_data

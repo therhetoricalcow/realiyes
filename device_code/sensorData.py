@@ -20,19 +20,20 @@ class sensorData:
 		self.linAccel = None
 		self.stopRecording = False
 		self.initialCoord = None
+		self.stopInitializingEuler = False
+		self.initialEulerPrint = True
 		with open('calib.pickle','rb') as f:
-                        off_acc,off_mag,off_gyro,rad_acc,rad_mag = pickle.load(f)
+			off_acc,off_mag,off_gyro,rad_acc,rad_mag = pickle.load(f)
 		self.sensor.mode = adafruit_bno055.CONFIG_MODE
-                self.sensor._write_register(0x55,off_acc)
-                self.sensor._write_register(0x5B,off_mag)
-                self.sensor._write_register(0x61,off_gyro)
-                self.sensor._write_register(0x67,rad_acc)
-                self.sensor._write_register(0x69,rad_mag)
-                self.sensor.mode = adafruit_bno055.NDOF_MODE
-	def getInitialEuler(self,t_take):
-		start = time.time()
+		self.sensor._write_register(0x55,off_acc)
+		self.sensor._write_register(0x5B,off_mag)
+		self.sensor._write_register(0x61,off_gyro)
+		self.sensor._write_register(0x67,rad_acc)
+		self.sensor._write_register(0x69,rad_mag)
+		self.sensor.mode = adafruit_bno055.NDOF_MODE
+	def getInitialEuler(self):
 		print("Started")
-		while(time.time() - start < t_take):
+		while(self.stopInitializingEuler == False):
 			a,b,c = self.sensor.euler
 			if(self.initialEuler.any() == None and a != None):
 #				self.initialCoord = np.array([[self.gpsd.fix.latitude*111139],[self.gpsd.fix.latitude*111139],[self.gpsd.fix.altitude]])
@@ -40,8 +41,9 @@ class sensorData:
 			if(a != None):
 #				self.initialCoord = np.hstack((self.initialCoord,np.array([[self.gpsd.fix.latitude*111139],[self.gpsd.fix.longitude*111139],[self.gpsd.fix.altitude]]))
 				self.initialEuler = np.hstack((self.initialEuler,np.array([[a],[b],[c]])*(np.pi/180)))
-			print(self.sensor.calibration_status)
-			
+			if(self.initialEulerPrint == True):
+				print(self.sensor.calibration_status)
+		print('Finished Initializing Euler/GPS')
 		self.inititalEuler = np.mean(self.initialEuler[-50:],axis = 1)
 #		self.initialCoord = np.mean(self.initialCoord[-100:],axis = 1)
 	def calibrate(self,t_take):
@@ -81,7 +83,7 @@ class sensorData:
 			self.euler = np.array([[a],[b],[c]]) - self.initialEuler
 			linAccel = self.sensor.linear_acceleration
 			self.linAccel = np.array([[linAccel[0]],[linAccel[1]],[linAccel[2]]])
-			Rz = np.array([[np.cos(-c),-np.sin(-c),o],[np.sin(-c),np.cos(-c),0],[0,0,1]])
+			Rz = np.array([[np.cos(-c),-np.sin(-c),0],[np.sin(-c),np.cos(-c),0],[0,0,1]])
 			Ry = np.array([[np.cos(-b),0,-np.sin(-b)],[0,1,0],[np.sin(-b),0,np.cos(-b)]])
 			Rx = np.array([[1,0,0],[0,np.cos(-a),-np.sin(-a)],[0,np.sin(-a),np.cos(-a)]])
 			R = Rz @ Ry @ Rx

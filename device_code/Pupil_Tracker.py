@@ -23,22 +23,22 @@ class Pupil_Tracker:
 			if self.stopped:
 				return
 			
-			(self.grabbed1,frame1) = self.stream1.read()
-			(self.grabbed2,frame2) = self.stream2.read()
+			(self.grabbed1,self.frame1) = self.stream1.read()
+			(self.grabbed2,self.frame2) = self.stream2.read()
 			while(self.grabbed1 == False or self.grabbed2 == False):
 				(self.grabbed1,frame1) = self.stream1.read()
 				(self.grabbed2,frame2) = self.stream2.read()
-			self.frame1 = frame1
-			self.frame2 = frame2
+			
+			
 	def read(self):
 		frame1 = cv2.resize(self.frame1,(224,224))
 		frame2 = cv2.resize(self.frame2,(224,224))
 		return frame1,frame2
 
 
-	def preprocess(self,frame1,frame2):
-#		frame1 = cv2.resize(self.frame1,(224,224))
-#		frame2 = cv2.resize(self.frame2,(224,224))
+	def preprocess(self):
+		frame1 = cv2.resize(self.frame1,(224,224))
+		frame2 = cv2.resize(self.frame2,(224,224))
 		frame1 = frame1.astype('float32')/255.0
 		frame2 = frame2.astype('float32')/255.0
 		frame1 = np.expand_dims(frame1,axis=0)
@@ -57,15 +57,20 @@ class Pupil_Tracker:
 #		print(output.dtype)
 		contours,hierarchy = cv2.findContours(output,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
 		output = cv2.cvtColor(output,cv2.COLOR_GRAY2BGR)
+		x = np.nan
+		y = np.nan
+		MA = np.nan
+		ma = np.nan
+		angle = np.nan
 		if len(contours) != 0:
 			cv2.drawContours(output,contours,-1,255,3)
 			c = max(contours,key = cv2.contourArea)
 			try:
-				ellipse = cv2.fitEllipse(c)
+				(x,y),(MA,ma),angle = cv2.fitEllipse(c)
 				cv2.ellipse(output,ellipse,(0,255,0),2)
 			except:
 				pass
-		return output
+		return output,np.array([[x],[y],[MA],[ma],[angle]])
 	
 	def blobEllipse(self,frame):
 #		frame = frame.astype('int8')
@@ -75,11 +80,11 @@ class Pupil_Tracker:
 		threshed = cv2.threshold(blur,7,255,cv2.THRESH_BINARY)[1]
 		output = cv2.bitwise_and(threshed,mask,mask = None)
 		contours,hierarchy = cv2.findContours(output,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
-		x = None
-		y = None
-		MA = None
-		ma = None
-		angle = None
+		x = np.nan
+		y = np.nan
+		MA = np.nan
+		ma = np.nan
+		angle = np.nan
 		if len(contours) != 0:
 			c = max(contours,key = cv2.contourArea)
 			try:
@@ -90,4 +95,5 @@ class Pupil_Tracker:
 
 	def stop(self):
 		self.stopped = True
-
+		self.stream1.release()
+		self.stream2.release()

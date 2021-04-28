@@ -16,10 +16,12 @@ class tflite_model:
         self.input_details = self.interpreter.get_input_details()
         self.output_details = self.interpreter.get_output_details()
 
-        print(self.input_details[0]['index'])
+#        print(self.input_details[0]['index'])
     
     def predict(self,frame):
-        start_time = time.time()
+ #       start_time = time.time()
+        frame = frame.astype('float32')/255.0
+        frame = np.expand_dims(frame,axis = 0)
         self.interpreter.set_tensor(self.input_details[0]['index'],frame)
         self.interpreter.invoke()
         output_data = self.interpreter.get_tensor(self.output_details[0]['index'])

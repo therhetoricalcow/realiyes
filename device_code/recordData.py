@@ -12,9 +12,7 @@ from os import path
 
 global sensor
 sensor = sensorData()
-p = Pupil_Tracker()
 model = tflite_model(model_file='../../Downloads/model_edgetpu_25.tflite')
-p.start()
 
 startSensorCalibration = False
 stopSensorCalibration = False
@@ -84,6 +82,7 @@ print('Starting Head Mount Calibration')
 t = threading.Thread(target=sensor.getInitialEuler, args=())
 t.daemon = True
 t.start()
+p = Pupil_Tracker()
 p.daemon = True
 p.start()
 initialCoord1 = np.array([None])
@@ -91,8 +90,8 @@ initialCoord2 = np.array([None])
 while(stopHeadMountCalibration == False):
 #	print('Starting CAmeras')
 	frame1,frame2 = p.read()
-	frame1_pic = p.blobFinder(model.predict(frame1))
-	frame2_pic = p.blobFinder(model.predict(frame2))
+	frame1_pic,_ = p.blobFinder(model.predict(frame1))
+	frame2_pic,_ = p.blobFinder(model.predict(frame2))
 	cv2.imshow('Predicted_F1',frame1_pic)
 #	cv2.waitKey(1)
 	cv2.imshow('Predicted_F2',frame2_pic)
@@ -113,51 +112,68 @@ while(startRecording == False):
 	pass
 print('Starting Recording')
 dirNum = 1
-dirpath = '/home/pi/Desktop/Recordings/' + str(dirNum) + '/'
-while(path.exists(dirpath) == True):
+dirPath = '/home/pi/Desktop/Recordings/' + str(dirNum) + '/'
+while(path.exists(dirPath) == True):
 	dirNum = dirNum + 1
-	dirpath + '/home/pi/Desktop/Recordings/' + str(dirNum) + '/'
-
-os.mkdir(dirpath)
+	dirPath = '/home/pi/Desktop/Recordings/' + str(dirNum) + '/'
+os.mkdir(dirPath)
 print("Folder Created")
+
 t_data =threading.Thread(target=sensor.getData, args=()) 
 t_data.daemon = True
 t_data.start()
-data = None
+data = np.array([None])
 start = time.time()
 j = 1
 
 while(stopRecording == False):
 	frame1,frame2 = p.read()
-	frame1_ellipse = p.blobEllipse(model.predict(frame1))
-	frame2_ellipse = p.blobEllipse(model.predict(frame2))
+#	frame1_ellipse = p.blobEllipse(model.predict(frame1))
+#	frame2_ellipse = p.blobEllipse(model.predict(frame2))
 #	frame1_ellipse[0] = frame1_ellipse[0] - initialCoord1[0]
 #	frame1_ellipse[1] = frame1_ellipse[1] - initialCoord1[1]
 #	frame2_ellipse[0] = frame2_ellipse[0] - initialCoord2[0]
 #	frame2_ellipse[1] = frame2_ellipse[1] - initialCoord2[1]
 #	print(frame1_ellipse.shape)
 	euler = sensor.euler
+	quaternion = sensor.quaternion
 #	print(euler.shape)
 	linAccel = sensor.linAccel
 #	print(linAccel.shape)
 	compAccel = sensor.compAccel
 #	print(compAccel.shape)
 #	i = np.array([time.time() - start])
-	if(data == None and startDataTake == True):
-		data = np.vstack((i,frame1_ellipse,frame2_ellipse,euler,linAccel,compAccel))
-		j = j+1
+	if(data.any() ==  None and startDataTake == True):
+		data = np.vstack((euler,quaternion,linAccel,compAccel))
+		k = 1
+		os.mkdir(dirPath + str(j))
+		imgPath = dirPath + str(j) + '/images/' 
+		sensPath = dirPath + str(j) + '/recording/'
+		os.mkdir(imgPath)
+		os.mkdir(sensPath)
+		frame1Path = imgPath + 'frame1/'
+		frame2Path = imgPath + 'frame2/'
+		os.mkdir(frame1Path)
+		os.mkdir(frame2Path)
+		cv2.imwrite(frame1Path + str(k) +'.png',frame1)
+		cv2.imwrite(frame2Path + str(k) +'.png',frame2)
+		
 	elif(startDataTake == True):
-		arry = np.vstack((i,frame1_ellipse,frame2_ellipse,euler,linAccel,compAccel))
+		k = k + 1
+		cv2.imwrite(frame1Path + str(k) + '.png',frame1)
+		cv2.imwrite(frame2Path + str(k) + '.png',frame2)
+		
+		arry = np.vstack((euler,quaternion,linAccel,compAccel))
 		data = np.hstack((data,arry))
-		j = j + 1
+
 	elif(stopDataTake == True):
 		
-		recPath = dirpath + str(j) + '.csv'
+		recPath = sensPath + str(j) + '.csv'
 		np.savetxt(recPath,np.transpose(data),delimiter = ",")
-		data = None
 		stopDataTake = False
 		print("Wrote " + str(j) + ".csv")
 		print(data.shape)
+		data = np.array([None])
 		j = j + 1
 	else:
 		pass

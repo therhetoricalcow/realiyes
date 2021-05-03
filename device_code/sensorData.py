@@ -18,6 +18,7 @@ class sensorData:
 		self.euler = None
 		self.compAccel = None
 		self.linAccel = None
+		self.quaternion = None
 		self.stopRecording = False
 		self.initialCoord = None
 		self.stopInitializingEuler = False
@@ -35,6 +36,7 @@ class sensorData:
 		print("Started")
 		while(self.stopInitializingEuler == False):
 			a,b,c = self.sensor.euler
+#			print(a,b,c)
 			if(self.initialEuler.any() == None and a != None):
 #				self.initialCoord = np.array([[self.gpsd.fix.latitude*111139],[self.gpsd.fix.latitude*111139],[self.gpsd.fix.altitude]])
 				self.initialEuler = np.array([[a],[b],[c]])*(np.pi/180)
@@ -76,16 +78,26 @@ class sensorData:
 			print(self.sensor.calibration_status)
 	def getData(self):
 		while(self.stopRecording == False):
+
+			qa,qb,qc,qd = self.sensor.quaternion
 			a,b,c = self.sensor.euler
-			a = a*(np.pi/180)
-			b = b*(np.pi/180)
-			c = c*(np.pi/180)
-			self.euler = np.array([[a],[b],[c]]) - self.initialEuler
 			linAccel = self.sensor.linear_acceleration
-			self.linAccel = np.array([[linAccel[0]],[linAccel[1]],[linAccel[2]]])
-			Rz = np.array([[np.cos(-c),-np.sin(-c),0],[np.sin(-c),np.cos(-c),0],[0,0,1]])
-			Ry = np.array([[np.cos(-b),0,-np.sin(-b)],[0,1,0],[np.sin(-b),0,np.cos(-b)]])
-			Rx = np.array([[1,0,0],[0,np.cos(-a),-np.sin(-a)],[0,np.sin(-a),np.cos(-a)]])
-			R = Rz @ Ry @ Rx
-			self.compAccel = R @ self.linAccel
+
+			if(qa is not None and qb is not None and qc is not None and qd is not None and a is not None and b is not None and c is not None and linAccel[0] is not  None and linAccel[1] is not None and linAccel[2] is not None):
+
+				self.linAccel = np.array([[linAccel[0]],[linAccel[1]],[linAccel[2]]])
+				self.euler = np.array([[a,b,c]])
+				self.quaternion = np.array([[qa,qb,qc,qd]])
+#				print(self.euler)
+#				print(self.sensor.calibration_status)
+				a = a*(np.pi/180)
+				b = b*(np.pi/180)
+				c = c*(np.pi/180)
+
+				Rz = np.array([[np.cos(-c),-np.sin(-c),0],[np.sin(-c),np.cos(-c),0],[0,0,1]])
+				Ry = np.array([[np.cos(-b),0,-np.sin(-b)],[0,1,0],[np.sin(-b),0,np.cos(-b)]])
+				Rx = np.array([[1,0,0],[0,np.cos(-a),-np.sin(-a)],[0,np.sin(-a),np.cos(-a)]])
+				self.compAccel =  Rz @ Ry @ Rx @ self.linAccel
 #			self.Coord = np.array([[self.gpsd.fix.latitude*111139],[self.gpsd.fix.longitude*111139],[self.gpsd.fix.altitude]]) - self.initialCoord
+			else:
+				pass

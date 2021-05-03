@@ -12,8 +12,10 @@ i = 0
 while(True):
 	raw_frame1,raw_frame2 = p.read()
 #	frame1,frame2 = p.preprocess()
-	frame1_ellipse,_ = p.blobFinder(model.predict(raw_frame1))
-	frame2_ellipse,_ = p.blobFinder(model.predict(raw_frame2))
+	frame1_ellipse,ellipse1 = p.blobFinder(model.predict(raw_frame1))
+	frame2_ellipse,ellipse2 = p.blobFinder(model.predict(raw_frame2))
+	print(ellipse1)
+	print(ellipse2)
 	cv2.imshow("Predicted_Frame1",frame1_ellipse)
 	cv2.imshow("Predicted_Frame2",frame2_ellipse)
 	cv2.imshow("RAW Frame1",raw_frame1)

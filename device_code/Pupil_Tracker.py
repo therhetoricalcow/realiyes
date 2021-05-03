@@ -1,3 +1,4 @@
+
 from threading import Thread
 import cv2
 import numpy as np
@@ -78,21 +79,24 @@ class Pupil_Tracker:
 #		print(output.dtype)
 		contours,hierarchy = cv2.findContours(output,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
 		output = cv2.cvtColor(output,cv2.COLOR_GRAY2BGR)
-#		x = np.nan
-#		y = np.nan
-#		MA = np.nan
-#		ma = np.nan
-#		angle = np.nan
+		x = np.nan
+		y = np.nan
+		MA = np.nan
+		ma = np.nan
+		angle = np.nan
+		ellipse = np.nan
 		if len(contours) != 0:
 			cv2.drawContours(output,contours,-1,255,3)
 			c = max(contours,key = cv2.contourArea)
 			try:
-				ellipse = cv2.fitEllipse(c)
+				((x,y),(MA,ma),angle) = cv2.fitEllipse(c)
+				ellipse = ((x,y),(MA,ma),angle)
 				cv2.ellipse(output,ellipse,(0,255,0),2)
+#				print(ellipse)
 			except:
 				
 				pass
-		return output
+		return output, np.array([[x,y,MA,ma,angle]])
 	
 	def blobEllipse(self,frame):
 #		frame = frame.astype('int8')
@@ -113,7 +117,7 @@ class Pupil_Tracker:
 				(x,y),(MA,ma),angle = cv2.fitEllipse(c)
 			except:
 				pass
-		return np.array([[x],[y],[MA],[ma],[angle]])
+		return np.array([[x,y,MA,ma,angle]])
 
 	def stop(self):
 		self.stopped = True

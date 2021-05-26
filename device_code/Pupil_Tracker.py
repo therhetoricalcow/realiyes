@@ -92,6 +92,7 @@ class Pupil_Tracker:
 				((x,y),(MA,ma),angle) = cv2.fitEllipse(c)
 				ellipse = ((x,y),(MA,ma),angle)
 				cv2.ellipse(output,ellipse,(0,255,0),2)
+#				cv2.ellipse(frame,ellipse,(0,255,0),2)
 #				print(ellipse)
 			except:
 				

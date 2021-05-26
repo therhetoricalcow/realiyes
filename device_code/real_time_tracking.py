@@ -7,11 +7,13 @@ import cv2
 import numpy as np
 import os
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import accuracy_score
 
+import time
 global sensor
 sensor = sensorData()
 pupil_model_dir = '../../Downloads/model_edgetpu_25.tflite'
-point_model_dir = '../../Downloads/point_model_edge.tflite'
+point_model_dir = '../../Downloads/point_model_edgetpu.tflite'
 model =  multi_tflite(ellipse_model = pupil_model_dir,point_model = point_model_dir)
 
 startSensorCalib = False
@@ -20,11 +22,15 @@ startCheckImage  = False
 stopCheckImage = False
 startPointCalib = False
 stopPointCalib = False
+startRecording = False
+stopRecording = False
 sendData = False
 stopData = False
+startShiftCalib = False
+stopShiftCalib = False
 def on_connect(client,user,flags,rc):
 	client.subscribe("data")
-
+	
 def on_message(client,userdata,message):
 	info = message.payload.decode()
 	print(info)
@@ -37,6 +43,10 @@ def on_message(client,userdata,message):
 	global stopPointCalib
 	global sendData
 	global stopData
+	global startRecording
+	global stopRecording
+	global startShiftCalib
+	global stopShiftCalib
 	if(str(info) == "startCalib"):
 		startSensorCalib = True
 
@@ -44,16 +54,26 @@ def on_message(client,userdata,message):
 		stopSensorCalib = True
 		sensor.stopInitializingEuler = True
 	if(str(info) == "startCheckeye"):
+		
 		startCheckImage = True
+		
 	if(str(info) == "stopCheckeye"):
 		stopCheckImage = True
-	if(str(info) == "startPointCalib"):
+	if(str(info) == "startRecording"):
+		startRecording = True
+	if(str(info) == "stopRecording"):
+		stopRecording = True
+	if(str(info) == "startCalibPoint"):
 		startPointCalib = True
 		stopPointCalib = False
-	if(str(info) == 'stopPointCalib'):
+	if(str(info) == "stopCalibPoint"):
 		stopPointCalib = True
 		startPointCalib = False
-	if(str(info) == 'sendData'):
+	if(str(info) == "startShiftCalib"):
+		startShiftCalib = True
+	if(str(info) == "stopShiftCalib"):
+		stopShiftCalib = True
+	if(str(info) == "sendData"):
 		sendData = True
 	if(str(info) == "stopData"):
 		stopData = True
@@ -79,85 +99,81 @@ while(startCheckImage == False):
 
 print('Starting Pupil Check')
 
-t = threading.Thread(targeet=sensor.getInitialEuler, args = ())
-t.daemon = True
-t.start()
 p = Pupil_Tracker()
 p.daemon = True
 p.start()
 
-while(stopCheckImage = False):
+while(stopCheckImage == False):
 	frame1, frame2 = p.read()
 	frame1_pic,_ = p.blobFinder(model.predict_img(frame1))
 	frame2_pic,_ = p.blobFinder(model.predict_img(frame2))
 	cv2.imshow('Predicted_F1',frame1_pic)
 	cv2.imshow('Predicted_F2',frame2_pic)
+	cv2.imshow('raw_f1',frame1)
+	cv2.imshow('raw_f2',frame2)
 	cv2.waitKey(1)
 
 cv2.destroyAllWindows()
 print('Done Pupil Check')
 
-t.join()
-
-calibNum = 1
-calibPath = '/home/pi/Desktop/Recordings/calibrations/' + str(calibNum) + '/'
-while(os.path.exists(calibPath) == True):
-	calibNum = 1 + calibNum
-	calibPath = '/home/pi/Desktop/Recordings/calibrations/' + str(calibNum) + '/'
-os.mkdir(calibPath)
-print('Calib Folder Created')
-t_data = threading.Thread(target = sensor.getData, args())
+t_data = threading.Thread(target = sensor.getData, args=())
 t_data.daemon = True
 t_data.start()
-rawData = np.array([None])
-trueData = np.array([None])
-points = np.array([[120,120],[120,1200-120],[1920-120,120],[1920-120,1200-120]])
-print('Waiting to Start Point Calibration')
-while(startPointCalib == False):
+
+while(startPointCalib==False):
 	pass
-
-
 print('Starting Calibration')
-pointNum = 0
-while(sendData == False)
+initialQuaternion = None
+while(stopPointCalib == False):
+	if(initialQuaternion is None):
+		initialQuaternion = sensor.quaternion
+	else:
+		initialQuaternion = np.vstack((initialQuaternion,sensor.quaternion))
+print(initialQuaternion.shape)
+initialQuaternion = np.mean(initialQuaternion,axis=0)
+print(initialQuaternion)
+print('Finished Calibration')
+
+
+while(startShiftCalib ==False):
+	pass
+print("Starting Shift Calib")
+bias_pred = None
+while(stopShiftCalib == False):
 	frame1,frame2 = p.read()
 	frame1_ellipse = p.blobEllipse(model.predict_img(frame1))
 	frame2_ellipse = p.blobEllipse(model.predict_img(frame2))
-	euler = sensor.euler
-	quaternion = sensor.quaternion
-	input_arr = np.hstack((frame1_ellipse,frame2_ellipse,quaternion,euler))
+	quaternion = sensor.quaternion - initialQuaternion
+	frame1_ellipse = np.hstack((frame1_ellipse[0,0:2],frame1_ellipse[0,4])).reshape((1,3))
+	frame2_ellipse = np.hstack((frame2_ellipse[0,0:2],frame2_ellipse[0,4])).reshape((1,3))
+	input_arr = np.hstack((frame1_ellipse,frame2_ellipse,quaternion.reshape((1,4))))
 	output_arr = model.predict_point(input_arr)
-	output_arr = output_arr.reshape((1,2))
-	if(rawData.any() == None and startPointCalib == True and trueData.any() = None):
-		rawData = output_arr
-		trueData = np.array([points[pointNum]])
-	elif(startPointCalib == True):
-		arr = output_arr
-		rawData = np.vstack((rawData,arr))
-		trueData = np.vstack((trueData,np.array([points[pointNum]])))
-	elif(stopPointCalib == True):
-		print(rawData.shape)
-		pointNum = pointNum + 1
-	else:
-		pass
+	pred = output_arr.reshape((1,2))
+	if(bias_pred is None):
+		bias_pred = pred - np.array([1920/2,1080/2])
+bias_pred = np.mean(bias_pred,axis=0)
+#linear_model = LinearRegression()
+#linear_model.fit(rawData,trueData)
+#pr = linear_model.predict(rawData)
+#print(accuracy_score(pr,trueData))
 
-
-print('Finished Calibration')
-
-linear_model = LinearRegression()
-linear_model.fit(rawData,trueData)
-
-
+print("Press Q to start recording")
+while(sendData == False):
+	pass
+print("Starting Real Time")
 while(stopData == False):
 	frame1,frame2 = p.read()
 	frame1_ellipse = p.blobEllipse(model.predict_img(frame1))
 	frame2_ellipse = p.blobEllipse(model.predict_img(frame2))
-	euler = sensor.euler
-	quaternion = sensor.quaternion 
-	input_arr = np.hstack((frame1_ellipse,frame2_ellipse,quaternion,euler))
+#	euler = sensor.euler
+	quaternion = sensor.quaternion - initialQuaternion
+	frame1_ellipse = np.hstack((frame1_ellipse[0,0:2],frame1_ellipse[0,4])).reshape((1,3))
+	frame2_ellipse = np.hstack((frame2_ellipse[0,0:2],frame2_ellipse[0,4])).reshape((1,3))
+	input_arr = np.hstack((frame1_ellipse,frame2_ellipse,quaternion.reshape((1,4))))
 	output_arr = model.predict_point(input_arr)
-	output_arr = output_arr.reshape((1,2))
-	pred = linear_model.predict(output_arr)
-	client.publish("data",str(pred[0]) + ","+str(pred[1]))
+	pred = output_arr.reshape((1,2))
+#	pred = linear_model.predict(output_arr)
+#	pred = pred - bias_pred
+	client.publish("data",str(pred[0][0]) + ","+str(pred[0][1]))
 
 

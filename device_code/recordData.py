@@ -23,6 +23,9 @@ stopRecording = False
 endCalibration = False
 startDataTake = False
 stopDataTake = False
+startCalibPoint = False
+stopCalibPoint = False
+
 def on_connect(client,user,flags,rc):
 	client.subscribe("record")
 
@@ -39,19 +42,22 @@ def on_message(client,userdata,message):
 	global sensor
 	global startDataTake
 	global stopDataTake
-	if(str(info) == '1'): ##Start Sensor Calibration
+	global startCalibPoint
+	global stopCalibPoint
+	if(str(info) == 'startCalib'): ##Start Sensor Calibration
 		startSensorCalibration = True
-	if(str(info) == '2'): ## Stop Sensor Calibration
+	if(str(info) == 'stopCalib'): ## Stop Sensor Calibration
 		stopSensorCalibration = True
 		sensor.stopInitializingEuler = True
-	if(str(info) == '3'): ## Start Head Mount Calibration
+	if(str(info) == 'startCheckeye'): ## Start Head Mount Calibration
 		startHeadMountCalibration = True
-		sensor.stopInitializingEuler = False
-		sensor.initialEulerPrint = False
-	if(str(info) == '4'): ##Stop Head Mount Calibration
+	if(str(info) == 'stopCheckeye'): ##Stop Head Mount Calibration
 		stopHeadMountCalibration = True
-		sensor.stopInitializingEuler = True
-	if(str(info) == '5'): ## Start Recording
+	if(str(info) == "startCalibPoint"):
+		startCalibPoint = True
+	if(str(info) == "stopCalibPoint"):
+		stopCalibPoint = True
+	if(str(info) == 'startRecording'): ## Start Recording
 		startRecording = True
 	if(str(info) == 'start'):
 		startDataTake = True
@@ -74,19 +80,20 @@ print('Waiting to Start Calibrating IMU/GPS... Press Q to start')
 while(startSensorCalibration == False):
 	pass
 print("Starting Sensor Calibration... Keep Still on a Surface... Press Q after everything is finished")
+
 sensor.getInitialEuler()
+sensor.calibrate()
+print("Finished Calibration")
+
 print("Secure to Face and Press Q to Start Calibrating Head Mount")
 while(startHeadMountCalibration == False):
 	pass
 print('Starting Head Mount Calibration')
-t = threading.Thread(target=sensor.getInitialEuler, args=())
-t.daemon = True
-t.start()
+
 p = Pupil_Tracker()
 p.daemon = True
 p.start()
-initialCoord1 = np.array([None])
-initialCoord2 = np.array([None])
+
 while(stopHeadMountCalibration == False):
 #	print('Starting CAmeras')
 	frame1,frame2 = p.read()
@@ -95,7 +102,24 @@ while(stopHeadMountCalibration == False):
 	cv2.imshow('Predicted_F1',frame1_pic)
 #	cv2.waitKey(1)
 	cv2.imshow('Predicted_F2',frame2_pic)
+#	euler = sensor.euler
+#	print(np.hstack((quaternion,euler))) 
 	cv2.waitKey(1)
+
+print("Finished Eye Check")
+
+initialQuaternion = np.array([None,None,None,None])
+t_data = threading.Thread(target=sensor.getData,args = ())
+t_data.daemon = True
+t_data.start()
+
+while(startCalibPoint == False):
+	pass
+while(stopCalibPoint == False):
+	if(initialQuaternion.any() == None):
+		initialQuaternion = sensor.quaternion
+	else:
+		initialQuaternion = np.vstack((initialQuaternion,sensor.quaternion))
 #	if(initialCoord1.any() == None):
 #		initialCoord1 = np.array([[frame1_ellipse[0]],[frame1_ellipse[1]]])
 #		initialCoord2 = np.array([[frame2_ellipse[0]],[frame2_ellipse[1]]])
@@ -105,8 +129,13 @@ while(stopHeadMountCalibration == False):
 #initialCoord1 = np.mean(initialCoord1,axis = 1)
 #initialCoord2 = np.mean(initialCoord2, axis = 1)
 cv2.destroyAllWindows()
+print(initialQuaternion.shape)
+initialQuaternion = np.mean(initialQuaternion,axis=0)
+print(initialQuaternion)
 print('Done Calibration')
-t.join()
+
+
+
 print('Waiting to Start Recording... Press Q to Start...Follow Tracer')
 while(startRecording == False):
 	pass
@@ -136,15 +165,14 @@ while(stopRecording == False):
 #	frame2_ellipse[1] = frame2_ellipse[1] - initialCoord2[1]
 #	print(frame1_ellipse.shape)
 	euler = sensor.euler
-	quaternion = sensor.quaternion
+	quaternion = sensor.quaternion - initialQuaternion
 #	print(euler.shape)
 	linAccel = sensor.linAccel
 #	print(linAccel.shape)
 	compAccel = sensor.compAccel
 #	print(compAccel.shape)
-#	i = np.array([time.time() - start])
 	if(data.any() ==  None and startDataTake == True):
-		data = np.vstack((euler,quaternion,linAccel,compAccel))
+		data = quaternion
 		k = 1
 		os.mkdir(dirPath + str(j))
 		imgPath = dirPath + str(j) + '/images/' 
@@ -163,8 +191,8 @@ while(stopRecording == False):
 		cv2.imwrite(frame1Path + str(k) + '.png',frame1)
 		cv2.imwrite(frame2Path + str(k) + '.png',frame2)
 		
-		arry = np.vstack((euler,quaternion,linAccel,compAccel))
-		data = np.hstack((data,arry))
+		arry = quaternion
+		data = np.vstack((data,arry))
 
 	elif(stopDataTake == True):
 		

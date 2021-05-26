@@ -1,4 +1,4 @@
-import pickle
+0]import pickle
 import numpy as np
 import board
 import busio
@@ -44,18 +44,18 @@ class sensorData:
 			if(a != None):
 #				self.initialCoord = np.hstack((self.initialCoord,np.array([[self.gpsd.fix.latitude*111139],[self.gpsd.fix.longitude*111139],[self.gpsd.fix.altitude]]))
 				self.initialEuler = np.hstack((self.initialEuler,np.array([[a],[b],[c]])*(np.pi/180)))
-		
-			sys,gyro,mag,accel = self.sensor.calibration_status
-			self.calibrationValues = np.array([sys,gyro,mag,accel])
-			print(self.calibrationValues)
+			if(self.initialEulerPrint == True):
+				if(self.calibrationValues.any() == None):
+					self.calibrationValues = np.array([self.sensor.calibration_status[0],self.sensor.calibration_status[1],self.calibration_status[2],self.calibration_status[3]])
+#					print(self.sensor.calibration_status)
 		print('Finished Initializing Euler/GPS')
 		self.inititalEuler = np.mean(self.initialEuler[-50:],axis = 1)
 #		self.initialCoord = np.mean(self.initialCoord[-100:],axis = 1)
-	def calibrate(self):
-#		start = time.time()
-#		while(time.time() - start < t_take):
-#			print(self.sensor.euler)
-#			print(self.sensor.calibration_status)
+	def calibrate(self,t_take):
+		start = time.time()
+		while(time.time() - start < t_take):
+			print(self.sensor.euler)
+			print(self.sensor.calibration_status)
 		self.sensor.mode = adafruit_bno055.CONFIG_MODE
 		off_acc = self.sensor._read_register(0x55)
 		off_mag = self.sensor._read_register(0x5B)

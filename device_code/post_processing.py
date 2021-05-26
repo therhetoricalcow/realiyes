@@ -88,7 +88,7 @@ def decrease_brightness(img):
 listener = keyboard.Listener(on_press=on_press)
 listener.start()
 j = 0
-for a in range(10,41):
+for a in range(2,41):
 	locDir = '/home/pi/Desktop/Recordings/camera_points/' + str(a) + '/'
 	imgDir = locDir + 'images/'
 	frame1Dir = imgDir + 'frame1/'
@@ -97,6 +97,7 @@ for a in range(10,41):
 
 	postData = np.array([None])
 	preData = np.genfromtxt(recDir + str(a) + '.csv',delimiter = ',')
+	preData = np.transpose(preData)
 	oldellipse1 = np.array([[np.nan,np.nan,np.nan,np.nan,np.nan]])
 	oldellipse2 = np.array([[np.nan,np.nan,np.nan,np.nan,np.nan]])
 	print(preData.shape)
@@ -138,12 +139,12 @@ for a in range(10,41):
 				if(postData.any() == None):
 					dataRow = preData[b-1,:]
 				
-					dataRow = np.hstack((ellipse1,ellipse2,dataRow.reshape((1,13))))
+					dataRow = np.hstack((ellipse1,ellipse2,dataRow.reshape((1,4))))
 					postData = dataRow
 					print(b/preData.shape[0])
 				else:
 					dataRow = preData[b-1,:]
-					dataRow = np.hstack((ellipse1,ellipse2,dataRow.reshape((1,13))))
+					dataRow = np.hstack((ellipse1,ellipse2,dataRow.reshape((1,4))))
 					postData = np.vstack((postData, dataRow))
 					print(b/preData.shape[0])
 			if(remove == True):

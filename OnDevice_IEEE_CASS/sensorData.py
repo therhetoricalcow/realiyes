@@ -24,6 +24,7 @@ class sensorData:
 		self.stopInitializingEuler = False
 		self.initialEulerPrint = True
 		self.calibrationValues = np.array([None,None,None,None])
+		self.quartData = None
 		with open('calib.pickle','rb') as f:
 			off_acc,off_mag,off_gyro,rad_acc,rad_mag = pickle.load(f)
 		self.sensor.mode = adafruit_bno055.CONFIG_MODE
@@ -79,6 +80,15 @@ class sensorData:
 		while(True):
 			print(self.sensor.euler)
 			print(self.sensor.calibration_status)
+	def getQuart(self):
+		self.quartData = np.array([None])
+		while(True):
+			if(self.quartData.any() is None):
+				self.quartData = self.sensor.quaternion
+			else:
+				self.quartData = np.vstack((self.quartData, self.sensor.quaternion))
+
+
 	def getData(self):
 		while(self.stopRecording == False):
 

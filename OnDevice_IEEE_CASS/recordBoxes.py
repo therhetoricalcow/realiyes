@@ -12,7 +12,7 @@ from os import path
 
 global sensor
 sensor = sensorData()
-model = tflite_model(model_file='../../Downloads/model_edgetpu_25.tflite')
+#model = tflite_model(model_file='../../Downloads/model_edgetpu_25.tflite')
 
 startSensorCalibration = False
 stopSensorCalibration = False
@@ -21,7 +21,9 @@ stopHeadMountCalibration = False
 startRecording = False
 stopRecording = False
 endCalibration = False
+global startDataTake
 startDataTake = False
+global stopDataTake
 stopDataTake = False
 startCalibPoint = False
 stopCalibPoint = False
@@ -84,7 +86,7 @@ while(startSensorCalibration == False):
 print("Starting Sensor Calibration... Keep Still on a Surface... Press Q after everything is finished")
 
 sensor.getInitialEuler()
-sensor.calibrate()
+#sensor.calibrate()
 print("Finished Calibration")
 
 print("Secure to Face and Press Q to Start Calibrating Head Mount")
@@ -92,38 +94,38 @@ while(startHeadMountCalibration == False):
 	pass
 print('Starting Head Mount Calibration')
 
+p = Pupil_Camera()
+p.start()
 while(stopHeadMountCalibration == False):
-    pass
-# #	print('Starting CAmeras')
-# 	frame1,frame2 = p.read()
+    
+#        print('Starting Cameras')
+        frame1,frame2 = p.read()
 # 	frame1_pic,_ = p.blobFinder(model.predict(frame1))
 # 	frame2_pic,_ = p.blobFinder(model.predict(frame2))
-# 	cv2.imshow('Predicted_F1',frame1_pic)
+        cv2.imshow('Predicted_F1',frame1)
 # #	cv2.waitKey(1)
-# 	cv2.imshow('Predicted_F2',frame2_pic)
+        cv2.imshow('Predicted_F2',frame2)
 # #	euler = sensor.euler
 # #	print(np.hstack((quaternion,euler)))
-# 	cv2.waitKey(1)
+        cv2.waitKey(1)
 
 
 print("Finished Eye Check")
-
-initialQuaternion = np.array([None, None, None, None])
-t_data = threading.Thread(target=sensor.getData, args=())
-t_data.daemon = True
-t_data.start()
+cv2.destroyAllWindows()
+p.stopped  = True
+p.updateThread.join()
 while(startCalibPoint == False):
 	pass
 
+if(stopCalibPoint == False):
+	sensor.start()
 while(stopCalibPoint == False):
-	if(initialQuaternion.any() == None):
-		initialQuaternion = sensor.quaternion
-	else:
-		initialQuaternion = np.vstack((initialQuaternion,sensor.quaternion))
-
+	pass
+sensor.stop()
 cv2.destroyAllWindows()
-print(initialQuaternion.shape)
-initialQuaternion = np.mean(initialQuaternion,axis=0)
+print(sensor.quartData.shape)
+initialQuaternion = np.mean(sensor.quartData,axis=0)
+sensor.initialQuaternion = initialQuaternion
 print(initialQuaternion)
 print('Done Calibration')
 
@@ -138,55 +140,34 @@ while(path.exists(dirPath) == True):
 	dirPath = '/home/pi/Desktop/Recordings/' + str(dirNum) + '/'
 os.mkdir(dirPath)
 print("Folder Created")
-
-t_data =threading.Thread(target=sensor.getQuart(), args=())
-t_data.daemon = True
-
 start = time.time()
 j = 1
-p = Pupil_Camera()
-os.mkdir(dirPath + str(j))
-imgPath = dirPath + str(j) + '/images/'
-sensPath = dirPath + str(j) + '/recording/'
-os.mkdir(imgPath)
-os.mkdir(sensPath)
-frame1Path = imgPath + 'frame1/'
-frame2Path = imgPath + 'frame2/'
-os.mkdir(frame1Path)
-os.mkdir(frame2Path)
-p.assignVideoCaps(frame1Path,frame2Path)
-p.start()
-t_data.start()
 newStart = None
 while (stopRecording == False):
-    quaternion = sensor.quaternion
-    #	print(euler.shape)
-    # linAccel = sensor.linAccel
-    #	print(linAccel.shape)
-    # compAccel = sensor.compAccel
-    #	print(compAccel.shape)
     if (newStart is None and startDataTake == True):
         newStart = 1
-        if(j>1):
+        if(j>0):
+            print("Starting Record" + str(j))
+#            p = Pupil_Camera()
+            folderPath = dirPath + str(j)
             os.mkdir(dirPath + str(j))
-            imgPath = dirPath + str(j) + '/images/'
-            sensPath = dirPath + str(j) + '/recording/'
-            os.mkdir(imgPath)
-            os.mkdir(sensPath)
-            frame1Path = imgPath + 'frame1/'
-            frame2Path = imgPath + 'frame2/'
-            os.mkdir(frame1Path)
-            os.mkdir(frame2Path)
+            
+            frame1Path = folderPath + 'frame1_' + str(j) + '.avi'
+            frame2Path = folderPath + 'frame2_' + str(j) + '.avi'
+#            os.mkdir(frame1Path)
+#            os.mkdir(frame2Path)
             p.assignVideoCaps(frame1Path, frame2Path)
             p.start()
-            t_data.start()
+            sensor.start()
+    elif(startDataTake == True):
+        p.write()
 
-    elif (stopDataTake == True):
+    elif(stopDataTake == True):
         p.stop()
         data = sensor.quartData
-        t_data.join()
-        recPath = sensPath + str(j) + '.csv'
-        np.savetxt(recPath, np.transpose(data), delimiter=",")
+        sensor.stop()
+        recPath = folderPath + 'data.csv'
+        np.savetxt(recPath, data, delimiter=",")
         stopDataTake = False
         print("Wrote " + str(j) + ".csv")
         print(data.shape)
@@ -196,8 +177,8 @@ while (stopRecording == False):
         pass
 
 data = sensor.quartData
-t_data.join()
+sensor.stop()
 p.stop()
 recPath = dirPath + str(j) + '.csv'
-np.savetxt(recPath,np.transpose(data),delimiter = ",")
+np.savetxt(recPath,data,delimiter = ",")
 print("Finished Recording")

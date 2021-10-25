@@ -10,19 +10,17 @@ calib.daemon = True
 calib.start()
 
 
-while(sensor.calibrationValues[1]!=3 or sensor.calibrationValues[2]!=3 or sensor.calibrationValues[3]!=3):
-	print(sensor.calibrationValues)
-	pass
+#while(sensor.calibrationValues[1]!=3 or sensor.calibrationValues[2]!=3 or sensor.calibrationValues[3]!=3):
+#	print(sensor.calibrationValues)
+#	pass
 
 sensor.stopInitializingEuler = True
 calib.join()
 
-rec = threading.Thread(target = sensor.getData,args=())
-rec.daemon = True
-rec.start()
+sensor.start()
 
-
-while(True):
-	quat = sensor.quaternion
-	print(quat)
-
+j = 0
+while(j<100):
+	quat = sensor.quartData
+	j = j + 1	
+sensor.stop()

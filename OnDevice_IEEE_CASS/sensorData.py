@@ -1,3 +1,4 @@
+import serial
 import pickle
 import numpy as np
 import board
@@ -6,11 +7,12 @@ import adafruit_bno055
 import os
 ##from gps import *
 import time
-import threading
-
+from threading import Thread
 class sensorData:
 	def __init__(self):
-		i2c = busio.I2C(board.SCL, board.SDA)
+#		uart = busio.UART(board.TX, board.RX)
+#		uart = serial.Serial('/dev/ttyS0')
+		i2c = busio.I2C(board.SCL,board.SDA)
 		self.sensor = adafruit_bno055.BNO055_I2C(i2c)
 #		self.gpsd = gps(mode=WATCH_ENABLE)
 		self.Coord = None
@@ -18,13 +20,14 @@ class sensorData:
 		self.euler = None
 		self.compAccel = None
 		self.linAccel = None
-		self.quaternion = None
+		self.initialQuaternion = np.array([[0,0,0,0]])
 		self.stopRecording = False
 		self.initialCoord = None
 		self.stopInitializingEuler = False
 		self.initialEulerPrint = True
 		self.calibrationValues = np.array([None,None,None,None])
 		self.quartData = None
+		self.updateThread = None
 		with open('calib.pickle','rb') as f:
 			off_acc,off_mag,off_gyro,rad_acc,rad_mag = pickle.load(f)
 		self.sensor.mode = adafruit_bno055.CONFIG_MODE
@@ -81,14 +84,41 @@ class sensorData:
 			print(self.sensor.euler)
 			print(self.sensor.calibration_status)
 	def getQuart(self):
-		self.quartData = np.array([None])
-		while(True):
-			if(self.quartData.any() is None):
-				self.quartData = self.sensor.quaternion
+		self.quartData = None
+		while(self.stopRecording==False):
+
+			qa,qb,qc,qd = self.sensor.quaternion
+			if(qa is not  None and qb is not None and qc is not  None or qd is not None):
+				if(self.quartData is None):
+				
+					self.quartData = np.array([[qa,qb,qc,qd]]) - initialQuaternion
+				else:
+				
+					self.quartData = np.vstack((self.quartData, np.array([[qa,qb,qc,qd]])-initialQuaternion))
 			else:
-				self.quartData = np.vstack((self.quartData, self.sensor.quaternion))
+				pass
 
+	def start(self):
+		self.stopped = False
+		self.updateThread = Thread(target=self.update,args=())
+		self.updateThread.start()
+		return self
 
+	def update(self):
+		self.quartData = None
+		while(self.stopped ==False):
+			qa,qb,qc,qd = self.sensor.quaternion
+			if(qa is not None and qb is not None and qc is not None and qd is not None):
+				if(self.quartData is None):
+					self.quartData = np.array([[qa,qb,qc,qd]])
+				else:
+					self.quartData = np.vstack((self.quartData,np.array([[qa,qb,qc,qd]])))
+			else:
+				pass
+	def stop(self):
+		if(self.stopped == False):
+			self.stopped = True
+			self.updateThread.join()
 	def getData(self):
 		while(self.stopRecording == False):
 
